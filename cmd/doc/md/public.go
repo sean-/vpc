@@ -30,9 +30,8 @@ var Cmd = &command.Command{
 	Cobra: &cobra.Command{
 		Use:   "md",
 		Short: "Generates and install " + buildtime.PROGNAME + " markdown pages",
-		Long: `
-Generate Markdown documentation for the ` + buildtime.PROGNAME + `
-It creates one Markdown file per command `,
+		Long: `Generate Markdown documentation for the ` + buildtime.PROGNAME + ` (one
+Markdown file per command`,
 
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return nil
