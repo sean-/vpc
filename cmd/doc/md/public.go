@@ -80,7 +80,7 @@ Markdown file per command`,
 				defaultValue = config.DefaultMarkdownDir
 			)
 
-			flags := parent.Cobra.PersistentFlags()
+			flags := parent.Cobra.Flags()
 			flags.String(longName, defaultValue, description)
 			viper.BindPFlag(key, flags.Lookup(longName))
 			viper.BindEnv(key, "MANDIR")
