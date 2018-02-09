@@ -3,7 +3,6 @@ package md
 import (
 	"fmt"
 	"os"
-
 	"path"
 	"path/filepath"
 	"strings"
