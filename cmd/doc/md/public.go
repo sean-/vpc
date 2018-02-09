@@ -83,7 +83,6 @@ Markdown file per command`,
 			flags := parent.Cobra.Flags()
 			flags.String(longName, defaultValue, description)
 			viper.BindPFlag(key, flags.Lookup(longName))
-			viper.BindEnv(key, "MANDIR")
 			viper.SetDefault(key, defaultValue)
 		}
 
