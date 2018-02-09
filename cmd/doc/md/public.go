@@ -38,7 +38,7 @@ Markdown file per command`,
 		},
 
 		RunE: func(cmd *cobra.Command, args []string) error {
-			mdDir := viper.GetString(config.KeyDocMdDir)
+			mdDir := viper.GetString(config.KeyDocMarkdownDir)
 
 			if _, err := os.Stat(mdDir); os.IsNotExist(err) {
 				if err := os.MkdirAll(mdDir, 0777); err != nil {
@@ -46,9 +46,10 @@ Markdown file per command`,
 				}
 			}
 
-			log.Info().Str("MDDIR", mdDir).Int("section", config.ManSect).Msg("Installing markdown pages")
+			log.Info().Str(config.KeyDocMarkdownDir, mdDir).Msg("Installing markdown documentation")
 
 			now := time.Now().UTC().Format(time.RFC3339)
+			prefix := viper.GetString(config.KeyDocMarkdownURLPrefix)
 			prepender := func(filename string) string {
 				name := filepath.Base(filename)
 				base := strings.TrimSuffix(name, path.Ext(name))
@@ -72,10 +73,11 @@ Markdown file per command`,
 	Setup: func(parent *command.Command) error {
 		{
 			const (
-				key          = config.KeyDocMdDir
-				longName     = "md-dir"
-				description  = "Specify the MDDIR to use"
-				defaultValue = config.DefaultMdDir
+				key          = config.KeyDocMarkdownDir
+				longName     = "dir"
+				shortName    = "d"
+				description  = "Specify the directory for generated Markdown files"
+				defaultValue = config.DefaultMarkdownDir
 			)
 
 			flags := parent.Cobra.PersistentFlags()
