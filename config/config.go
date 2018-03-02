@@ -58,9 +58,9 @@ func New() (*Config, error) {
 		DB: DB{
 			Scheme: DBSchemeCRDB,
 
-			CAPath:   "/usr/home/seanc/go/src/github.com/sean-/vpc/crdb/certs/ca.crt",
-			CertPath: "/usr/home/seanc/go/src/github.com/sean-/vpc/crdb/certs/client.root.crt",
-			KeyPath:  "/usr/home/seanc/go/src/github.com/sean-/vpc/crdb/certs/client.root.key",
+			CAPath:   "./crdb/certs/ca.crt",
+			CertPath: "./crdb/certs/client.root.crt",
+			KeyPath:  "./crdb/certs/client.root.key",
 
 			PoolConfig: pgx.ConnPoolConfig{
 				MaxConnections: 5,
