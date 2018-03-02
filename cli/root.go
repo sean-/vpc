@@ -18,6 +18,7 @@ import (
 	"github.com/sean-/vpc/cli/run"
 	"github.com/sean-/vpc/cli/shell"
 	"github.com/sean-/vpc/cli/version"
+	"github.com/sean-/vpc/cli/vm"
 	"github.com/sean-/vpc/cli/vmnic"
 	"github.com/sean-/vpc/cli/vpcsw"
 	"github.com/sean-/vpc/internal/buildtime"
@@ -39,6 +40,7 @@ var subCommands = command.Commands{
 	run.Cmd,
 	shell.Cmd,
 	version.Cmd,
+	vm.Cmd,
 	vmnic.Cmd,
 	vpcsw.Cmd,
 }
