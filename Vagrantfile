@@ -4,6 +4,9 @@
 freebsd_box = 'jen20/FreeBSD-12.0-CURRENT-VPC'
 guest_disk_path = "#{File.dirname(__FILE__)}/vagrant/guest_disks"
 
+require './vagrant/helper/core'
+require './vagrant/helper/utils'
+
 Vagrant.configure("2") do |config|
 	config.ssh.extra_args = ["-e", "%"]
 	
@@ -38,7 +41,6 @@ Vagrant.configure("2") do |config|
 			vmCfg = configureFreeBSDDBProvisioners(vmCfg, hostname, ip)
 		
 			vmCfg.vm.network "private_network", ip: ip
-		
 
 			["vwmare_fusion", "vmware_workstation"].each do |p|
 				vmCfg.vm.provider p do |v|
@@ -172,16 +174,19 @@ def configureFreeBSDProvisioners(vmCfg)
 end
 
 def ensure_disk(vmCfg, dirname, filename)
-	vdiskmanager = '/Applications/VMware\ Fusion.app/Contents/Library/vmware-vdiskmanager'
+	completePath = File.join(dirname, filename)
+	if Vagrant::Util::Platform::mac?
+		vdiskmanager = '/Applications/VMware Fusion.app/Contents/Library/vmware-vdiskmanager'
+	elsif Vagrant::Util::Platform::windows?
+		vdiskmanager = "C:\\Program Files (x86)\\VMWare\\VMWare Workstation\\vmware-vdiskmanager.exe"
+	end
 
 	unless Dir.exists?(dirname)
 		Dir.mkdir dirname
 	end
 
-	completePath = File.join(dirname, filename)
-
 	unless File.exists?(completePath)
-		`#{vdiskmanager} -c -s 30GB -a lsilogic -t 1 #{completePath}`
+		system("cd \"#{dirname}\" && \"#{vdiskmanager}\" -c -s 30GB -a lsilogic -t 1 \"#{filename}\"")
 	end
 
 	["vwmare_fusion", "vmware_workstation"].each do |p|
