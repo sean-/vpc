@@ -19,10 +19,12 @@ Vagrant.configure("2") do |config|
 
 		vmCfg.vm.network "private_network", ip: "172.27.10.5"
 
-		vmCfg.vm.provider "vmware_fusion" do |v|
-			v.vmx["memsize"] = "1024"
-			v.vmx["numvcpus"] = "2"
-			v.vmx["ethernet1.virtualDev"] = "vmxnet3"
+		["vwmare_fusion", "vmware_workstation"].each do |p|
+			vmCfg.vm.provider p do |v|
+				v.vmx["memsize"] = "1024"
+				v.vmx["numvcpus"] = "2"
+				v.vmx["ethernet1.virtualDev"] = "vmxnet3"
+			end
 		end
 	end
 
@@ -37,10 +39,13 @@ Vagrant.configure("2") do |config|
 		
 			vmCfg.vm.network "private_network", ip: ip
 		
-			vmCfg.vm.provider "vmware_fusion" do |v|
-				v.vmx["memsize"] = "1024"
-				v.vmx["numvcpus"] = "2"
-				v.vmx["ethernet1.virtualDev"] = "vmxnet3"
+
+			["vwmare_fusion", "vmware_workstation"].each do |p|
+				vmCfg.vm.provider p do |v|
+					v.vmx["memsize"] = "1024"
+					v.vmx["numvcpus"] = "2"
+					v.vmx["ethernet1.virtualDev"] = "vmxnet3"
+				end
 			end
 		end
 	end
@@ -53,10 +58,12 @@ Vagrant.configure("2") do |config|
 
 		vmCfg.vm.network "private_network", ip: "172.27.10.20"
 
-		vmCfg.vm.provider "vmware_fusion" do |v|
-			v.vmx["memsize"] = "4096"
-			v.vmx["numvcpus"] = "2"
-			v.vmx["ethernet1.virtualDev"] = "vmxnet3"
+		["vwmare_fusion", "vmware_workstation"].each do |p|
+			vmCfg.vm.provider p do |v|
+				v.vmx["memsize"] = "4096"
+				v.vmx["numvcpus"] = "2"
+				v.vmx["ethernet1.virtualDev"] = "vmxnet3"
+			end
 		end
 	end
 	
@@ -68,10 +75,12 @@ Vagrant.configure("2") do |config|
 
 		vmCfg.vm.network "private_network", ip: "172.27.10.21"
 
-		vmCfg.vm.provider "vmware_fusion" do |v|
-			v.vmx["memsize"] = "4096"
-			v.vmx["numvcpus"] = "2"
-			v.vmx["ethernet1.virtualDev"] = "vmxnet3"
+		["vwmare_fusion", "vmware_workstation"].each do |p|
+			vmCfg.vm.provider p do |v|
+				v.vmx["memsize"] = "4096"
+				v.vmx["numvcpus"] = "2"
+				v.vmx["ethernet1.virtualDev"] = "vmxnet3"
+			end
 		end
 	end
 end
@@ -175,10 +184,12 @@ def ensure_disk(vmCfg, dirname, filename)
 		`#{vdiskmanager} -c -s 30GB -a lsilogic -t 1 #{completePath}`
 	end
 
-	vmCfg.vm.provider "vmware_fusion" do |v|
-		v.vmx["scsi0:1.filename"] = File.expand_path(completePath)
-		v.vmx["scsi0:1.present"] = 'TRUE'
-		v.vmx["scsi0:1.redo"] = ''
+	["vwmare_fusion", "vmware_workstation"].each do |p|
+		vmCfg.vm.provider p do |v|
+			v.vmx["scsi0:1.filename"] = File.expand_path(completePath)
+			v.vmx["scsi0:1.present"] = 'TRUE'
+			v.vmx["scsi0:1.redo"] = ''
+		end
 	end
 
 	return vmCfg
