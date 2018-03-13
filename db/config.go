@@ -33,6 +33,8 @@ func SetDefaultViperOptions() error {
 	viper.SetDefault("db.insecure_skip_verify", false)
 	viper.SetDefault("db.use_tls_client_auth", true)
 
+	// Note: these are the default certificate paths for CockroachDB, as used
+	// by the interactive `cockroach sql` command.
 	caPath, err := homedir.Expand("~/.cockroach-certs/ca.crt")
 	if err != nil {
 		return errors.Wrap(err, "error expanding home directory")
