@@ -255,4 +255,3 @@ func AddID(cmd *command.Command, keyName string, required bool) error {
 
 	return nil
 }
-

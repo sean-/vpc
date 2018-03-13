@@ -19,9 +19,9 @@ var Cmd = &command.Command{
 
 	Setup: func(self *command.Command) error {
 		subCommands := command.Commands{
-		//create.Cmd,
-		//destroy.Cmd,
-		//list.Cmd,
+			//create.Cmd,
+			//destroy.Cmd,
+			//list.Cmd,
 		}
 
 		if err := self.Register(subCommands); err != nil {
