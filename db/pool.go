@@ -22,24 +22,32 @@ import (
 type Pool struct {
 	pool            *pgx.ConnPool
 	stdDriverConfig *stdlib.DriverConfig
-	config          *Config
+	config          Config
 }
 
 func New(cfg Config) (*Pool, error) {
-	pool := &Pool{}
+	pool := &Pool{
+		config: cfg,
+	}
 
+	tlsConfig, err := cfg.TLSConfig()
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to generate a TLS config")
+	}
+
+	// TODO(jen20) do we even want to support password auth vs TLS?
 	poolConfig := pgx.ConnPoolConfig{
 		ConnConfig: pgx.ConnConfig{
 			Logger:   logger.NewPGX(log.Logger),
 			Database: cfg.Database,
 			User:     cfg.User,
-			Password: cfg.Password,
-			Host:     cfg.Host,
-			Port:     cfg.Port,
-			Dial:     (&net.Dialer{Timeout: cfg.ConnTimeout, KeepAlive: 5 * time.Minute}).Dial,
+			//Password: cfg.Password,
+			Host: cfg.Host,
+			Port: cfg.Port,
+			Dial: (&net.Dialer{Timeout: cfg.ConnTimeout, KeepAlive: 5 * time.Minute}).Dial,
 
 			UseFallbackTLS: false,
-			TLSConfig:      nil,
+			TLSConfig:      tlsConfig,
 
 			// TODO(seanc): Need to write a zerolog facade that satisfies the pgx logger interface
 			// Logger:   log.Logger.With().Str("module", "pgx").Logger(),
@@ -58,11 +66,6 @@ func New(cfg Config) (*Pool, error) {
 
 	if err := pool.Ping(); err != nil {
 		return nil, errors.Wrap(err, "unable to ping database")
-	}
-
-	tlsConfig, err := cfg.TLSConfig()
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to generate a TLS config")
 	}
 
 	pool.stdDriverConfig = &stdlib.DriverConfig{

@@ -90,6 +90,6 @@ var Cmd = &command.Command{
 	},
 
 	Setup: func(self *command.Command) error {
-		return nil
+		return db.SetDefaultViperOptions()
 	},
 }

@@ -8,13 +8,23 @@ import (
 )
 
 type Agent struct {
-	DbPool      *db.Pool
+	dbPool      *db.Pool
 	shutdownCtx context.Context
 	shutdown    func()
 }
 
-func New() (agent *Agent, err error) {
-	a := &Agent{}
+func New(pool *db.Pool) (agent *Agent, err error) {
+	if pool == nil {
+		return nil, errors.New("DBPool must be initialized")
+	}
+
+	a := &Agent{
+		dbPool: pool,
+	}
+
+	if err := a.dbPool.Ping(); err != nil {
+		return nil, errors.Wrap(err, "unable to ping database")
+	}
 
 	a.shutdownCtx, a.shutdown = context.WithCancel(context.Background())
 
@@ -34,8 +44,8 @@ func (a *Agent) Stop() error {
 }
 
 func (a *Agent) Shutdown() error {
-	if a.DbPool != nil {
-		a.DbPool.Close()
+	if a.dbPool != nil {
+		a.dbPool.Close()
 	}
 
 	return nil
