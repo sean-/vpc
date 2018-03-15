@@ -3,6 +3,8 @@ package vm
 import (
 	"github.com/pkg/errors"
 	"github.com/sean-/vpc/cli/vm/create"
+	"github.com/sean-/vpc/cli/vm/list"
+	vmstart "github.com/sean-/vpc/cli/vm/start"
 	"github.com/sean-/vpc/internal/command"
 	"github.com/spf13/cobra"
 )
@@ -18,18 +20,10 @@ var Cmd = &command.Command{
 	},
 
 	Setup: func(self *command.Command) error {
-		//cmds := []*command.Command{
-		//	create.Cmd,
-		//	// list.Cmd,
-		//}
-
-		//for _, cmd := range cmds {
-		//	parent.Cobra.AddCommand(cmd.Cobra)
-		//	cmd.Setup(cmd)
-		//}
 		subCommands := command.Commands{
 			create.Cmd,
-			//list.Cmd,
+			list.Cmd,
+			vmstart.Cmd,
 		}
 
 		if err := self.Register(subCommands); err != nil {

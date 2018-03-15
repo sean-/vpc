@@ -4,18 +4,18 @@ import (
 	"os"
 	"path"
 
-	"github.com/google/gops/agent"
+	gagent "github.com/google/gops/agent"
 	isatty "github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/sean-/conswriter"
 	"github.com/sean-/seed"
+	"github.com/sean-/vpc/cli/agent"
 	"github.com/sean-/vpc/cli/db"
 	"github.com/sean-/vpc/cli/doc"
 	"github.com/sean-/vpc/cli/ethlink"
 	"github.com/sean-/vpc/cli/intf"
 	"github.com/sean-/vpc/cli/list"
-	"github.com/sean-/vpc/cli/run"
 	"github.com/sean-/vpc/cli/shell"
 	"github.com/sean-/vpc/cli/version"
 	"github.com/sean-/vpc/cli/vm"
@@ -37,7 +37,7 @@ var subCommands = command.Commands{
 	ethlink.Cmd,
 	intf.Cmd,
 	list.Cmd,
-	run.Cmd,
+	agent.Cmd,
 	shell.Cmd,
 	version.Cmd,
 	vm.Cmd,
@@ -79,7 +79,7 @@ $ vpc list
 			const (
 				key         = config.KeyUsePager
 				longName    = "use-pager"
-				shortName   = "P"
+				shortName   = ""
 				description = "Use a pager to read the output (defaults to $PAGER, less(1), or more(1))"
 			)
 			var defaultValue bool
@@ -171,7 +171,7 @@ func Execute() error {
 	// Always enable the agent
 	//
 	// TODO(seanc@): add if viper.GetBool("debug.enable-agent") {
-	if err := agent.Listen(&agent.Options{}); err != nil {
+	if err := gagent.Listen(&gagent.Options{}); err != nil {
 		log.Fatal().Err(err).Msg("unable to start gops agent")
 	}
 

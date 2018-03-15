@@ -1,14 +1,9 @@
-package create
+package start
 
 import (
-	"fmt"
-	"os"
-	"os/user"
-
 	zfs "github.com/mistifyio/go-zfs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	uuid "github.com/satori/go.uuid"
 	"github.com/sean-/vpc/cli/vm/bhyve"
 	"github.com/sean-/vpc/internal/command"
 	"github.com/sean-/vpc/internal/command/flag"
@@ -18,7 +13,7 @@ import (
 )
 
 const (
-	_CmdName                              = "create"
+	_CmdName                              = "start"
 	_KeyJSON                              = config.KeyJson
 	_KeyName                              = config.KeyName
 	_KeyUUID                              = config.KeyUUID
@@ -30,6 +25,7 @@ const (
 	_KeyDiskSize                          = config.KeyDiskSize
 	_KeyNicDriver                         = config.KeyNicDriver
 	_KeyNicDevice                         = config.KeyNicDevice
+	_KeyNicID                             = config.KeyNicID
 	_KeySerialConsole1                    = config.KeySerialConsole1
 	_KeySerialConsole2                    = config.KeySerialConsole2
 	_KeyHostBridge                        = config.KeyHostBridge
@@ -46,66 +42,14 @@ const (
 	_KeyBhyveWireGuestMemory              = config.KeyBhyveWireGuestMemory
 )
 
-// Create the datasets for bhyve
-// Example from chyves
-// /chyves/
-//	`-- zones
-//     |-- Firmware
-//     |-- ISO
-//     |   |-- null.iso
-//     |   `-- ubuntu-16.04.3-server-amd64.iso
-//	   |-- guests
-//	   |   `-- transcode
-//     |       |-- img
-//     |       `-- logs
-//     	`-- logs
-func setupDatasets() error {
-	fsRoot, err := bhyve.GetGuestDataset(viper.GetString(config.KeyUUID))
+func checkVMExists(uuid string) error {
+	fsName, err := bhyve.GetGuestPath(uuid)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Unable to get guest dataset")
 	}
 
-	if _, err := zfs.GetDataset(fsRoot); err != nil {
-		log.Info().
-			Str("filesystem", fsRoot).
-			Str("UUID", viper.GetString(config.KeyUUID)).
-			Msg("Creating ZFS Filesystem")
-		if _, err := zfs.CreateFilesystem(fsRoot, nil); err != nil {
-			return errors.Wrap(err, "unable to create vm filesystem")
-		}
-	}
-
-	fsName := fmt.Sprintf("%s/firmware", fsRoot)
 	if _, err := zfs.GetDataset(fsName); err != nil {
-		log.Info().
-			Str("filesystem", fsName).
-			Str("UUID", viper.GetString(config.KeyUUID)).
-			Msg("Creating ZFS Filesystem")
-		if _, err := zfs.CreateFilesystem(fsName, nil); err != nil {
-			return errors.Wrap(err, "unable to create vm filesystem")
-		}
-	}
-
-	fsName = fmt.Sprintf("%s/iso", fsRoot)
-	if _, err := zfs.GetDataset(fsName); err != nil {
-		log.Info().
-			Str("filesystem", fsName).
-			Str("UUID", viper.GetString(config.KeyUUID)).
-			Msg("Creating ZFS Filesystem")
-		if _, err := zfs.CreateFilesystem(fsName, nil); err != nil {
-			return errors.Wrap(err, "unable to create vm filesystem")
-		}
-	}
-
-	fsName = fmt.Sprintf("%s/disk0", fsRoot)
-	if _, err := zfs.GetDataset(fsName); err != nil {
-		log.Info().Str("volume", fsName).
-			Str("disksize", viper.GetString(config.KeyDiskSize)).
-			Str("UUID", viper.GetString(config.KeyUUID)).
-			Msg("Creating ZFS Filesystem")
-		if _, err := zfs.CreateVolume(fsName, viper.GetString(config.KeyDiskSize), nil); err != nil {
-			return errors.Wrap(err, "unable to create vm filesystem")
-		}
+		return errors.Wrap(err, "Unable to find guest")
 	}
 
 	return nil
@@ -113,49 +57,22 @@ func setupDatasets() error {
 
 var Cmd = &command.Command{
 	Name: _CmdName,
-
 	Cobra: &cobra.Command{
 		Use:          _CmdName,
-		Short:        "Create a Virtual Machine",
+		Short:        "Start a Virtual Machine",
+		Aliases:      []string{"run"},
 		SilenceUsage: true,
 
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			usr, err := user.Current()
-			if err != nil {
-				return errors.Wrap(err, "unable to get current user")
-			}
-
-			if usr.Uid != "0" {
-				return errors.Errorf("User with UID %s does not have permissions to create a VM", usr.Uid)
-			}
-
-			if viper.GetString(config.KeyUUID) == "" {
-				viper.Set(config.KeyUUID, uuid.Must(uuid.NewV4()))
-			}
-
-			zvolPath, err := bhyve.GetZvolPath(viper.GetString(_KeyUUID))
-			if err != nil {
-				return errors.Wrap(err, "unable to get vm zvol path")
-			}
-
-			if viper.GetString(config.KeyDiskDevice) == "" {
-				viper.Set(config.KeyDiskDevice, zvolPath)
-			}
-
-			if viper.GetString(config.KeySerialConsole1) == "" {
-				viper.Set(config.KeySerialConsole1,
-					fmt.Sprintf("/dev/nmdm%sA", viper.GetString(config.KeyUUID)))
-			}
-			if viper.GetString(config.KeySerialConsole2) == "" {
-				viper.Set(config.KeySerialConsole2,
-					fmt.Sprintf("/dev/nmdm%sB", viper.GetString(config.KeyUUID)))
+			if viper.GetString(_KeyUUID) == "" {
+				return errors.Errorf("Must specify VM by UUID")
 			}
 
 			return nil
 		},
 
 		RunE: func(cmd *cobra.Command, args []string) error {
-			log.Info().Str("command", "create").Msg("")
+			log.Info().Str("command", "run").Msg("")
 
 			// cfg, err := config.New()
 			// if err != nil {
@@ -186,85 +103,68 @@ var Cmd = &command.Command{
 			// if err := db.Ping(); err != nil {
 			// 	return errors.Wrap(err, "unable to ping with stdlib driver")
 			// }
-
-			// TODO(Sam) Add ability to read in json config
-			// if viper.GetString(config.KeyJson) != "" {
-			// }
-
-			cfg := bhyve.BhyveConfig{
-				Name:                         viper.GetString(_KeyName),
-				UUID:                         viper.GetString(_KeyUUID),
-				VCPUs:                        viper.GetInt(_KeyVCPUs),
-				BootPartition:                viper.GetString(_KeyBootPartition),
-				RAM:                          viper.GetString(_KeyRAM),
-				DiskDriver:                   viper.GetString(_KeyDiskDriver),
-				DiskDevice:                   viper.GetString(_KeyDiskDevice),
-				DiskSize:                     viper.GetString(_KeyDiskSize),
-				NicDriver:                    viper.GetString(_KeyNicDriver),
-				NicDevice:                    viper.GetString(_KeyNicDevice),
-				SerialConsole1:               viper.GetString(_KeySerialConsole1),
-				SerialConsole2:               viper.GetString(_KeySerialConsole2),
-				HostBridge:                   viper.GetString(_KeyHostBridge),
-				LPC:                          viper.GetString(_KeyLPC),
-				GenACPITables:                viper.GetBool(_KeyBhyveGenACPITables),
-				IncGuestCoreMem:              viper.GetBool(_KeyBhyveIncGuestCoreMem),
-				ExitOnUnemuIOPort:            viper.GetBool(_KeyBhyveExitOnUnemuIOPort),
-				YieldCPUOnHLT:                viper.GetBool(_KeyBhyveYieldCPUOnHLT),
-				IgnoreUnimplementedMSRAccess: viper.GetBool(_KeyBhyveIgnoreUnimplementedMSRAccess),
-				ForceMSIInterrupts:           viper.GetBool(_KeyBhyveForceMSIInterrupts),
-				Apicx2Mode:                   viper.GetBool(_KeyBhyveAPICx2Mode),
-				DisableMPTableGeneration:     viper.GetBool(_KeyBhyveDisableMPTableGeneration),
+			// Check if VM exists
+			if err := checkVMExists(viper.GetString(config.KeyUUID)); err != nil {
+				return errors.Wrap(err, "A VM with that UUID does not exist")
 			}
-			bhyve.PrintConfig(cfg)
+
+			// Read in JSON config
+			// Check if VM exists
+			cfg, err := bhyve.ReadConfig(viper.GetString(config.KeyUUID))
+			if err != nil {
+				return errors.Wrap(err, "Cannot Read Config")
+			}
+
+			// cfg := bhyve.BhyveConfig{
+			// 	Name:                         viper.GetString(_KeyName),
+			// 	UUID:                         viper.GetString(_KeyUUID),
+			// 	VCPUs:                        viper.GetInt(_KeyVCPUs),
+			//  BootPartition:                          viper.GetString(_KeyBootPartition),
+			// 	RAM:                          viper.GetString(_KeyRAM),
+			// 	DiskDriver:                   viper.GetString(_KeyDiskDriver),
+			// 	DiskDevice:                   viper.GetString(_KeyDiskDevice),
+			// 	DiskSize:                     viper.GetString(_KeyDiskSize),
+			// 	NicDriver:                    viper.GetString(_KeyNicDriver),
+			// 	NicDevice:                    viper.GetString(_KeyNicDevice),
+			// 	SerialConsole1:               viper.GetString(_KeySerialConsole1),
+			// 	SerialConsole2:               viper.GetString(_KeySerialConsole2),
+			// 	GenACPITables:                viper.GetBool(_KeyBhyveGenACPITables),
+			// 	IncGuestCoreMem:              viper.GetBool(_KeyBhyveIncGuestCoreMem),
+			// 	ExitOnUnemuIOPort:            viper.GetBool(_KeyBhyveExitOnUnemuIOPort),
+			// 	YieldCPUOnHLT:                viper.GetBool(_KeyBhyveYieldCPUOnHLT),
+			// 	IgnoreUnimplementedMSRAccess: viper.GetBool(_KeyBhyveIgnoreUnimplementedMSRAccess),
+			// 	ForceMSIInterrupts:           viper.GetBool(_KeyBhyveForceMSIInterrupts),
+			// 	Apicx2Mode:                   viper.GetBool(_KeyBhyveAPICx2Mode),
+			// 	DisableMPTableGeneration:     viper.GetBool(_KeyBhyveDisableMPTableGeneration),
+			// }
+			bhyve.PrintConfig(*cfg)
 
 			// Setup ZFS datasets and zvol
-			if err := setupDatasets(); err != nil {
-				return errors.Wrap(err, "Failed to setup ZFS datasets for virtual machine")
-			}
+			// if err := setupDatasets(); err != nil {
+			// 	return errors.Wrap(err, "Failed to setup ZFS datasets for virtual machine")
+			// }
 
 			// Setup Networking
 			// (if needed)
 
-			// Write out device.map
-			diskPath, err := bhyve.GetZvolPath(viper.GetString(_KeyUUID))
+			// Run grub-bhyve
+			grubBhyve, err := bhyve.BuildGrubBhyveArgs(*cfg)
 			if err != nil {
-				return errors.Wrap(err, "unable to get vm path")
+				return errors.Wrap(err, "unable to create bhyve command")
 			}
-
-			guestPath, err := bhyve.GetGuestPath(viper.GetString(_KeyUUID))
+			err = bhyve.RunGrubBhyve(*cfg, grubBhyve)
 			if err != nil {
-				return errors.Wrap(err, "unable to get guest path")
+				return errors.Wrap(err, "unable to run grub-bhyve")
 			}
-
-			deviceMap := fmt.Sprintf("(hd0) %s", diskPath)
-			deviceMapPath := fmt.Sprintf("%s/device.map", guestPath)
-			_, err = os.Stat(deviceMapPath)
-			if os.IsNotExist(err) {
-				f, err := os.Create(deviceMapPath)
-				if err != nil {
-					return errors.Wrap(err, "Cannot create device.map")
-				}
-
-				defer f.Close()
-			}
-
-			f, err := os.OpenFile(deviceMapPath, os.O_RDWR, 0644)
+			// Finally, run Bhyve
+			bhyveString, err := bhyve.BuildBhyveArgs(*cfg)
 			if err != nil {
-				return errors.Wrap(err, "Cannot open device.map")
+				return errors.Wrap(err, "unable to create bhyve command")
 			}
-			defer f.Close()
-
-			if _, err := f.WriteString(deviceMap); err != nil {
-				return errors.Wrap(err, "Cannot write device.map")
+			err = bhyve.RunBhyve(*cfg, bhyveString)
+			if err != nil {
+				return errors.Wrap(err, "unable to run bhyve")
 			}
-
-			f.Sync()
-
-			// TODO(sam): Write out config to database
-
-			bhyve.PrintConfig(cfg)
-			bhyve.WriteConfig(cfg)
-			log.Info().Msg("Created VM")
 
 			return nil
 		},
@@ -278,6 +178,7 @@ var Cmd = &command.Command{
 		if err := flag.AddStringFlag(self, _KeyLPC, "lpc", "", "lpc", "Allow devices behind the LPC PCI-ISA bridge to be configured. The only supported devices are the TTY-class devices com1 and com2 and the boot ROM device bootrom.", false, true); err != nil {
 			return errors.Wrap(err, "unable to register lpc flag on VPC VM create")
 		}
+
 		if err := flag.AddBoolFlag(self, _KeyBhyveGenACPITables, "acpi", "A", true, "Generate ACPI tables. Required for FreeBSD/amd64 guests.", false, true); err != nil {
 			return errors.Wrap(err, "unable to register GenACPITables flag on VPC VM create")
 		}
@@ -326,7 +227,7 @@ var Cmd = &command.Command{
 			return errors.Wrap(err, "unable to register Name flag on VPC VM create")
 		}
 
-		if err := flag.AddStringFlag(self, _KeyUUID, "uuid", "u", "", "VM UUID. A UUID is randomly generated by default.", false, false); err != nil {
+		if err := flag.AddStringFlag(self, _KeyUUID, "uuid", "u", "", "VM UUID. A UUID is randomly generated by default.", true, false); err != nil {
 			return errors.Wrap(err, "unable to register UUID flag on VPC VM create")
 		}
 		if err := flag.AddIntFlag(self, _KeyVCPUs, "vcpus", "", 1, "Number of vCPUs", false, false); err != nil {
@@ -358,6 +259,10 @@ var Cmd = &command.Command{
 			return errors.Wrap(err, "unable to register NicDevice flag on VPC VM create")
 		}
 
+		if err := flag.AddStringFlag(self, _KeyNicID, "nicid", "", "", "NIC Device ID e.g. a vmnic uuid", false, false); err != nil {
+			return errors.Wrap(err, "unable to register NicID flag on VPC VM create")
+		}
+
 		if err := flag.AddStringFlag(self, _KeySerialConsole1, "serialconsole1", "", "", "Serial Console 1 Device", false, false); err != nil {
 			return errors.Wrap(err, "unable to register SerialConsole1 flag on VPC VM create")
 		}
@@ -365,7 +270,6 @@ var Cmd = &command.Command{
 		if err := flag.AddStringFlag(self, _KeySerialConsole2, "serialconsole2", "", "", "Serial Console 2 Device", false, false); err != nil {
 			return errors.Wrap(err, "unable to register SerialConsole1 flag on VPC VM create")
 		}
-
 		return nil
 	},
 }

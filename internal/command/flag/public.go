@@ -9,6 +9,51 @@ import (
 	"github.com/spf13/viper"
 )
 
+func AddStringFlag(cmd *command.Command, key string, longName string, shortName string, defaultValue string, description string, required bool, hidden bool) error {
+	flags := cmd.Cobra.Flags()
+	flags.StringP(longName, shortName, defaultValue, description)
+	if required {
+		cmd.Cobra.MarkFlagRequired(longName)
+	}
+	if hidden {
+		flags.MarkHidden(longName)
+	}
+	viper.BindPFlag(key, flags.Lookup(longName))
+	viper.SetDefault(key, defaultValue)
+
+	return nil
+}
+
+func AddIntFlag(cmd *command.Command, key string, longName string, shortName string, defaultValue int, description string, required bool, hidden bool) error {
+	flags := cmd.Cobra.Flags()
+	flags.IntP(longName, shortName, defaultValue, description)
+	if required {
+		cmd.Cobra.MarkFlagRequired(longName)
+	}
+	if hidden {
+		flags.MarkHidden(longName)
+	}
+	viper.BindPFlag(key, flags.Lookup(longName))
+	viper.SetDefault(key, defaultValue)
+
+	return nil
+}
+
+func AddBoolFlag(cmd *command.Command, key string, longName string, shortName string, defaultValue bool, description string, required bool, hidden bool) error {
+	flags := cmd.Cobra.Flags()
+	flags.BoolP(longName, shortName, defaultValue, description)
+	if required {
+		cmd.Cobra.MarkFlagRequired(longName)
+	}
+	if hidden {
+		flags.MarkHidden(longName)
+	}
+	viper.BindPFlag(key, flags.Lookup(longName))
+	viper.SetDefault(key, defaultValue)
+
+	return nil
+}
+
 // AddEthLinkID adds the VM NIC ID flag to a given command.
 func AddEthLinkID(cmd *command.Command, keyName string, required bool) error {
 	key := keyName
