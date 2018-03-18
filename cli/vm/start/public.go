@@ -14,6 +14,7 @@ import (
 
 const (
 	_CmdName                              = "start"
+	_KeyISO                               = config.KeyISO
 	_KeyJSON                              = config.KeyJson
 	_KeyName                              = config.KeyName
 	_KeyUUID                              = config.KeyUUID
@@ -171,6 +172,9 @@ var Cmd = &command.Command{
 	},
 
 	Setup: func(self *command.Command) error {
+		if err := flag.AddStringFlag(self, _KeyISO, "iso", "", "", "ISO to be booted.", false, true); err != nil {
+			return errors.Wrap(err, "unable to register iso flag on VPC VM create")
+		}
 		if err := flag.AddStringFlag(self, _KeyHostBridge, "hostbridge", "", "hostbridge", "A simple hostbridge. The amd_hostbridge emulation is identical but uses a PCI vendor ID of AMD.", false, true); err != nil {
 			return errors.Wrap(err, "unable to register hostbridge flag on VPC VM create")
 		}
